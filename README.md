@@ -10,5 +10,6 @@ This project is a web-based drag-and-drop table application where users can dyna
 - Random Box Colors: Each box is assigned a random background color when created.
 ### Technologies Used:
 **HTML,CSS, JavaScript**
-##Project is Deployed at:
-'mento-mind-assignment.vercel.app'
+
+## Project is Deployed at:
+[`DragAndDrop` ]([http://20.244.93.34:8081/api-docs/](https://mento-mind-assignment.vercel.app/))
