@@ -12,4 +12,4 @@ This project is a web-based drag-and-drop table application where users can dyna
 **HTML,CSS, JavaScript**
 
 ## Project is Deployed at:
-[`DragAndDrop` ](http://20.244.93.34:8081/api-docs/](https://mento-mind-assignment.vercel.app/))
+[`DragAndDrop` ](https://mento-mind-assignment.vercel.app/)
