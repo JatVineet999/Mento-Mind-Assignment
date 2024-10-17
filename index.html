@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Drag & Drop Table</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Drag And Drop Table</h1>
+    </header>
+
+    <main>
+      <section class="table-container">
+        <table id="dragDropTable"></table>
+      </section>
+
+      <div class="controls">
+        <button class="btn btn-addrow" id="addRowButton" onclick="addNewRow()">Add Row</button>
+        <button class="btn btn-undo" id="undoButton" onclick="undoLastAction()">Undo</button>
+      </div>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
