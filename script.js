@@ -1,11 +1,103 @@
-let draggedElement = null;
-const historyStack = [];
-let isAnimating = false; 
+// Constants
 const ANIMATION_DURATION = 500; // Duration of the animation in milliseconds
 const INITIAL_BOX_COUNT = 3; // Number of boxes per row
 const INITIAL_ROW_COUNT = 3; // Initial number of rows
 
-// Initialize drag-and-drop event listeners for boxes and cells
+const state = {
+  draggedElement: null,
+  historyStack: [],
+  currentPointer: -1, // Pointer to track current position in history
+  isAnimating: false,
+};
+
+// Command base class
+class Command {
+  execute() {}
+  undo() {}
+  redo() {}
+}
+
+class BoxMoveCommand extends Command {
+  constructor(draggedBox, draggedFrom, movedBox, movedFrom) {
+    super();
+    Object.assign(this, { draggedBox, draggedFrom, movedBox, movedFrom });
+  }
+
+  execute() {
+    this._animateAndSwap(
+      this.draggedBox,
+      this.movedFrom,
+      this.movedBox,
+      this.draggedFrom
+    );
+  }
+
+  undo() {
+    this._animateAndSwap(
+      this.movedBox,
+      this.movedFrom,
+      this.draggedBox,
+      this.draggedFrom
+    );
+  }
+
+  redo() {
+    this.execute();
+  }
+
+  _animateAndSwap(box1, toCell1, box2, toCell2) {
+    if (box1) {
+      animateBoxMovement(box1, toCell1, () => toCell1.appendChild(box1));
+    }
+    if (box2) {
+      animateBoxMovement(box2, toCell2, () => toCell2.appendChild(box2));
+    }
+  }
+}
+
+class RowAddCommand extends Command {
+  constructor(newRow) {
+    super();
+    this.newRow = newRow;
+  }
+
+  execute() {
+    document.getElementById("dragDropTable").appendChild(this.newRow);
+  }
+
+  undo() {
+    document.getElementById("dragDropTable").deleteRow(this.newRow.rowIndex);
+  }
+
+  redo() {
+    this.execute();
+  }
+}
+
+function executeCommand(command) {
+  state.historyStack.splice(state.currentPointer + 1);
+  command.execute();
+  state.historyStack.push(command);
+  state.currentPointer++;
+}
+
+function undoLastAction() {
+  if (state.currentPointer >= 0 && !state.isAnimating) {
+    state.historyStack[state.currentPointer].undo();
+    state.currentPointer--;
+  }
+}
+
+function redoLastAction() {
+  if (
+    state.currentPointer < state.historyStack.length - 1 &&
+    !state.isAnimating
+  ) {
+    state.historyStack[state.currentPointer + 1].redo();
+    state.currentPointer++;
+  }
+}
+
 function initializeDragAndDrop() {
   document.querySelectorAll("td").forEach((cell) => {
     cell.ondragover = (event) => event.preventDefault();
@@ -14,49 +106,30 @@ function initializeDragAndDrop() {
 }
 
 const handleDragStart = (event) => {
-  draggedElement = event.target;
-  setTimeout(() => draggedElement.classList.add("invisible"), 0);
+  state.draggedElement = event.target;
+  setTimeout(() => state.draggedElement.classList.add("invisible"), 0);
 };
 
 const handleDragEnd = () => {
-  if (draggedElement) {
-    draggedElement.classList.remove("invisible");
+  if (state.draggedElement) {
+    state.draggedElement.classList.remove("invisible");
   }
 };
 
-// Handle drop event
 const handleDrop = (event) => {
   event.preventDefault();
   const targetCell = event.target.closest("td");
-  if (targetCell && targetCell !== draggedElement.parentElement) {
+  if (targetCell && targetCell !== state.draggedElement.parentElement) {
     const targetBox = targetCell.querySelector(".box");
-    recordHistory(draggedElement, targetCell, targetBox);
-    animateAndSwap(draggedElement, targetCell, targetBox);
+    const moveCommand = new BoxMoveCommand(
+      state.draggedElement,
+      state.draggedElement.parentElement,
+      targetBox,
+      targetCell
+    );
+    executeCommand(moveCommand);
   }
 };
-
-// Record the history for undo functionality
-const recordHistory = (draggedBox, targetCell, movedBox) => {
-  historyStack.push({
-    draggedBox,
-    draggedFrom: draggedBox.parentElement,
-    movedBox,
-    movedFrom: targetCell,
-  });
-};
-
-function animateAndSwap(box, targetCell, targetBox) {
-  const originalCell = box.parentElement;
-  animateBoxMovement(box, targetCell, () => {
-    if (targetBox) {
-      originalCell.appendChild(targetBox);
-    }
-    targetCell.appendChild(box);
-  });
-  if (targetBox) {
-    animateBoxMovement(targetBox, originalCell);
-  }
-}
 
 function animateBoxMovement(box, targetCell, callback) {
   const { left: startX, top: startY } = box.getBoundingClientRect();
@@ -87,23 +160,6 @@ const resetBoxStyles = (box) => {
   });
 };
 
-function undoLastAction() {
-  if (isAnimating || historyStack.length === 0) return;
-
-  isAnimating = true;
-  const lastAction = historyStack.pop();
-  const { draggedBox, draggedFrom, movedBox, movedFrom } = lastAction;
-
-  animateBoxMovement(draggedBox, draggedFrom, () => {
-    movedFrom.appendChild(movedBox);
-  });
-
-  animateBoxMovement(movedBox, movedFrom, () => {
-    draggedFrom.appendChild(draggedBox);
-    isAnimating = false;
-  });
-}
-
 function addNewRow() {
   const table = document.getElementById("dragDropTable");
   const newRow = table.insertRow();
@@ -112,17 +168,17 @@ function addNewRow() {
     const boxNum = startingNumber + (i + 1) * 100 - 100;
     newRow.insertCell().appendChild(createNewBox(boxNum));
   });
+  const rowCommand = new RowAddCommand(newRow);
+  executeCommand(rowCommand);
   initializeDragAndDrop();
 }
 
-function createNewBox(num) {
+function createNewBox(boxNumber) {
   const box = document.createElement("div");
   box.className = "box";
-  box.textContent = num;
+  box.textContent = boxNumber;
   box.draggable = true;
   box.style.backgroundColor = getRandomColor();
-
-  // Inline event handlers
   box.ondragstart = handleDragStart;
   box.ondragend = handleDragEnd;
 
@@ -136,10 +192,12 @@ function getRandomColor() {
     () => letters[Math.floor(Math.random() * 16)]
   ).join("")}`;
 }
-// Initialize the table with some rows and boxes on page load
+
 window.onload = () => {
   for (let i = 0; i < INITIAL_ROW_COUNT; i++) {
     addNewRow();
   }
+  state.historyStack.length = 0;
+  state.currentPointer = -1;
   initializeDragAndDrop();
 };

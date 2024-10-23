@@ -74,6 +74,17 @@ td {
 .btn-undo:active {
   background-color: #b71c1c; 
 }
+.btn-redo {
+  background-color: #4CAF50;
+}
+
+.btn-redo:hover {
+  background-color: #45a049;
+}
+
+.btn-redo:active {
+  background-color: #388e3c;
+}
 
 .controls {
   text-align: center;
