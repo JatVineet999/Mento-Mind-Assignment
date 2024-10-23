@@ -85,6 +85,17 @@ function undoLastAction() {
   if (state.currentPointer >= 0 && !state.isAnimating) {
     state.historyStack[state.currentPointer].undo();
     state.currentPointer--;
+    updateRedoButton();
+  }
+}
+
+function updateRedoButton() {
+  const redoButton = document.querySelector(".btn-redo");
+
+  if (state.currentPointer < state.historyStack.length - 1) {
+    redoButton.classList.remove("disabled");
+  } else {
+    redoButton.classList.add("disabled");
   }
 }
 
@@ -95,6 +106,7 @@ function redoLastAction() {
   ) {
     state.historyStack[state.currentPointer + 1].redo();
     state.currentPointer++;
+    updateRedoButton(); // Update button state
   }
 }
 
@@ -199,5 +211,6 @@ window.onload = () => {
   }
   state.historyStack.length = 0;
   state.currentPointer = -1;
+  updateRedoButton();
   initializeDragAndDrop();
 };
